@@ -1,0 +1,60 @@
+import { createSupabaseServerPublic } from "@/lib/supabase/serverPublic";
+import { redirect } from "next/navigation";
+
+export default async function EditAssessmentPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const supabase = createSupabaseServerPublic();
+
+  // 1. DBから該当データを取得
+  const { data } = await supabase
+    .from("love_assessments")
+    .select("id, created_at, ai_comment")
+    .eq("id", params.id)
+    .single();
+
+  if (!data) {
+    return <p>データが存在しません。</p>;
+  }
+
+  // 2. form の submit を処理
+  async function updateComment(formData: FormData) {
+    "use server";
+
+    const newComment = formData.get("ai_comment")?.toString() ?? "";
+
+    const supabase = createSupabaseServerPublic();
+
+    await supabase
+      .from("love_assessments")
+      .update({ ai_comment: newComment })
+      .eq("id", params.id);
+
+    redirect("/admin/assessments");
+  }
+
+  return (
+    <main className="max-w-2xl mx-auto p-6 space-y-4">
+      <h1 className="text-2xl font-bold">AIコメント編集</h1>
+
+      <p className="text-sm text-gray-600">{data.created_at}</p>
+
+      <form action={updateComment} className="space-y-4">
+        <textarea
+          name="ai_comment"
+          defaultValue={data.ai_comment ?? ""}
+          className="w-full border rounded p-3 h-40"
+        />
+
+        <button
+          type="submit"
+          className="px-4 py-2 bg-black text-white rounded"
+        >
+          保存する
+        </button>
+      </form>
+    </main>
+  );
+}
